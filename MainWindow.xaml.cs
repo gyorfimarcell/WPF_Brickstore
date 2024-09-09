@@ -53,19 +53,29 @@ namespace WPF_Brickstore
 
             if (ofd.ShowDialog() == true)
             {
-                parts.Clear();
+                List<Part> newParts = [];
 
-                XDocument xaml = XDocument.Load(ofd.FileName);
-                foreach (var item in xaml.Descendants("Item"))
+                try
                 {
-                    parts.Add(new Part(
-                        item.Element("ItemID").Value,
-                        item.Element("ItemName").Value,
-                        item.Element("CategoryName").Value,
-                        item.Element("ColorName").Value,
-                        Convert.ToInt32(item.Element("Qty").Value)
-                    ));
+                    XDocument xaml = XDocument.Load(ofd.FileName);
+                    foreach (var item in xaml.Descendants("Item"))
+                    {
+                        newParts.Add(new Part(
+                            item.Element("ItemID").Value,
+                            item.Element("ItemName").Value,
+                            item.Element("CategoryName").Value,
+                            item.Element("ColorName").Value,
+                            Convert.ToInt32(item.Element("Qty").Value)
+                        ));
+                    }
                 }
+                catch {
+                    MessageBox.Show("A kiválasztott fájl nem megfelelő formátum!");
+                    return;
+                }
+
+                parts = new(newParts);
+                dgParts.ItemsSource = parts;
 
                 lblFile.Content = $"Betöltött fájl: {ofd.FileName} ({parts.Count} elem)";
 
