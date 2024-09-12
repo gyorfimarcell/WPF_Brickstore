@@ -1,5 +1,7 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,6 +22,7 @@ namespace WPF_Brickstore
     public partial class MainWindow : Window
     {
         ObservableCollection<Part> parts = [];
+        string folder;
 
         public MainWindow()
         {
@@ -34,9 +37,21 @@ namespace WPF_Brickstore
                 dgParts.ItemsSource = parts.Where(x =>
                     (tbName.Text == "" || x.Name.Contains(tbName.Text, StringComparison.CurrentCultureIgnoreCase))
                     && (tbId.Text == "" || x.Id.Contains(tbId.Text, StringComparison.CurrentCultureIgnoreCase))
-                    && (cbCategory.SelectedIndex == 0 || x.Category == cbCategory.SelectedItem.ToString())
+                    && (cbCategory.SelectedIndex <= 0 || x.Category == cbCategory.SelectedItem.ToString())
                 );
+
+                SetCategories();
             }
+        }
+
+        private void SetCategories()
+        {
+            cbCategory.ItemsSource = parts.Where(x =>
+                    (tbName.Text == "" || x.Name.Contains(tbName.Text, StringComparison.CurrentCultureIgnoreCase))
+                    && (tbId.Text == "" || x.Id.Contains(tbId.Text, StringComparison.CurrentCultureIgnoreCase)))
+                .Select(x => x.Category).Distinct().Order().Prepend("Összes kategória");
+
+            if (cbCategory.SelectedIndex == -1) cbCategory.SelectedIndex = 0;
         }
 
         private void ClearFilters()
@@ -46,41 +61,47 @@ namespace WPF_Brickstore
             cbCategory.SelectedIndex = 0;
         }
 
+        private void OpenFile(string path)
+        {
+            List<Part> newParts = [];
+
+            try
+            {
+                XDocument xaml = XDocument.Load(path);
+                foreach (var item in xaml.Descendants("Item"))
+                {
+                    newParts.Add(new Part(
+                        item.Element("ItemID").Value,
+                        item.Element("ItemName").Value,
+                        item.Element("CategoryName").Value,
+                        item.Element("ColorName").Value,
+                        Convert.ToInt32(item.Element("Qty").Value)
+                    ));
+                }
+            }
+            catch
+            {
+                MessageBox.Show("A kiválasztott fájl nem megfelelő formátum!");
+                return;
+            }
+
+            parts = new(newParts);
+            dgParts.ItemsSource = parts;
+
+            lblFile.Content = $"Betöltött fájl: {path} ({parts.Count} elem)";
+
+            SetCategories();
+            ClearFilters();
+        }
+
         private void btnOpen_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new();
-            ofd.Filter = "BrickStore fájl (.bsx)|*.bsx";
+            OpenFolderDialog ofd = new();
 
             if (ofd.ShowDialog() == true)
             {
-                List<Part> newParts = [];
-
-                try
-                {
-                    XDocument xaml = XDocument.Load(ofd.FileName);
-                    foreach (var item in xaml.Descendants("Item"))
-                    {
-                        newParts.Add(new Part(
-                            item.Element("ItemID").Value,
-                            item.Element("ItemName").Value,
-                            item.Element("CategoryName").Value,
-                            item.Element("ColorName").Value,
-                            Convert.ToInt32(item.Element("Qty").Value)
-                        ));
-                    }
-                }
-                catch {
-                    MessageBox.Show("A kiválasztott fájl nem megfelelő formátum!");
-                    return;
-                }
-
-                parts = new(newParts);
-                dgParts.ItemsSource = parts;
-
-                lblFile.Content = $"Betöltött fájl: {ofd.FileName} ({parts.Count} elem)";
-
-                cbCategory.ItemsSource = parts.Select(x => x.Category).Distinct().Order().Prepend("Összes kategória");
-                ClearFilters();
+                folder = ofd.FolderName;
+                lbFiles.ItemsSource = Directory.GetFiles(ofd.FolderName).Where(x => x.EndsWith(".bsx")).Select(x => x.Split('\\').Last());
             }
         }
 
@@ -102,6 +123,14 @@ namespace WPF_Brickstore
         private void btnClear_Click(object sender, RoutedEventArgs e)
         {
             ClearFilters();
+        }
+
+        private void lbFiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lbFiles.SelectedIndex != -1)
+            {
+                OpenFile(System.IO.Path.Join(folder, lbFiles.SelectedItem.ToString()));
+            }
         }
     }
 }

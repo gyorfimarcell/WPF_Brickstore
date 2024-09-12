@@ -8,6 +8,7 @@
         Title="Lego alkatrészek" Height="750" Width="1400">
     <Grid>
         <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
             <ColumnDefinition Width="3*"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
@@ -16,19 +17,23 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
 
-        <Label x:Name="lblFile"
-               Margin="8"
-               VerticalAlignment="Center">Nincs fájl betöltve.</Label>
         <Button x:Name="btnOpen"
-                Grid.Column="1"
-                Margin="8" Click="btnOpen_Click">Új fájl betöltése</Button>
+                Margin="8" Click="btnOpen_Click">Új mappa megnyitása</Button>
+        <ListBox x:Name="lbFiles"
+                 Grid.Row="1"
+                 Margin="8" SelectionChanged="lbFiles_SelectionChanged"/>
 
+        <Label x:Name="lblFile"
+       Grid.Column="1"
+       Margin="8"
+       VerticalAlignment="Center">Nincs fájl betöltve.</Label>
         <DataGrid x:Name="dgParts"
                   Grid.Row="1"
+                  Grid.Column="1"
                   Margin="8"/>
 
         <StackPanel Orientation="Vertical"
-                    Grid.Column="1"
+                    Grid.Column="2"
                     Grid.Row="1"
                     Margin="8">
             <Label HorizontalAlignment="Center" FontSize="24">Szűrők</Label>
